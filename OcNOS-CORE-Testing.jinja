@@ -1,0 +1,394 @@
+{#- Set Up Basic Info -#}
+hostname {{ device.name }}
+feature netconf-ssh vrf management
+feature netconf-tls vrf management
+no feature netconf-ssh
+no feature netconf-tls
+cml bulk-config limit cpu enable
+no service password-encryption
+bgp extended-asn-cap
+logging logfile ocnoslog 7 size 419430400
+debug logfile ocnosdebug size 4194304
+snmp-server enable traps link linkDown
+snmp-server enable traps link linkUp
+
+{# hardware-profile filter evpn-mpls-mh enable #}
+hardware-profile statistics ingress-acl enable
+qos enable
+mpls ftn-ecmp ldp
+
+no ip domain-lookup
+ip domain-lookup vrf management
+tfo Disable
+errdisable cause stp-bpdu-guard
+feature telnet vrf management
+no feature telnet
+feature ssh vrf management
+no feature ssh
+feature dns relay
+ip dns relay
+ipv6 dns relay
+feature ntp vrf management
+ntp enable vrf management
+feature rsyslog
+lldp run
+lldp tlv-select basic-mgmt system-name
+lldp tlv-select basic-mgmt system-capabilities
+lldp tlv-select basic-mgmt system-description
+lldp tlv-select basic-mgmt management-address
+evpn mpls enable
+evpn mpls irb
+
+{#- ip prefix-list pl-asn401233 
+ seq 5 permit 203.0.113.0/24 le 32
+!
+ipv6 prefix-list pl-asn401233-ipv6
+ seq 5 permit 3fff:da7a::/32 le 128
+!
+route-map rm-permit-ibgp-out permit 10
+ match ip address prefix-list pl-asn401233
+!
+route-map rm-permit-ibgp-out deny 20
+!
+route-map rm-permit-ibgp-out-ipv6 permit 10
+ match ipv6 address prefix-list pl-asn401233-ipv6
+!
+route-map rm-permit-ibgp-out-ipv6 deny 20
+#}
+segment-routing
+ mpls sr-prefer
+ global block 16000 23999
+ traffic-engineering
+ exit-te
+!
+{%- set loopbacks = {} %}
+{%- for iface in device.interfaces.all() %}
+  {%- if "loopback" in iface.name.lower() %}
+    {%- for ip in iface.ip_addresses.all() %}
+      {%- set _ = loopbacks.update({ iface.name: ip.address.ip }) %}
+    {%- endfor %}
+  {%- endif %}
+{%- endfor %}
+{%- set loopback_ip = loopbacks.get('loopback1', device.primary_ip4.address.ip if device.primary_ip4 else "0.0.0.0") %}
+{%- set vrfs = [] %}
+{%- for interface in device.interfaces.all() %}
+  {%- if interface.vrf and interface.vrf not in vrfs %}
+    {%- set _ = vrfs.append(interface.vrf) %}
+  {%- endif %}
+{%- endfor %}
+{#- ############################ Fix this bit ################################# #}
+{%- for vrf in vrfs %}
+ip vrf {{ vrf.name }}
+rd {{ loopback_ip }}:11
+route-target both 401233:11
+!
+{%- endfor %}
+{#- Example ASN or RT base #}
+{%- set asn = 401233 %}
+{# IP VRFs #}
+{%- for vrf in device.get_config_context().get("vrfs", {}).get("ip", []) %}
+{%- set l3vni = vrf.get("l3vni", 3000 + loop.index) %}
+{%- set rd = vrf.get("rd", loopback_ip ~ ":" ~ l3vni) %}
+{%- set rt = vrf.get("rt", asn ~ ":" ~ l3vni) %}
+ip vrf {{ vrf.name }}
+ rd {{ rd }}
+ route-target both {{ rt }}
+ l3vni {{ l3vni }}
+exit
+!
+{%- endfor %}
+ip vrf alliance-mgmt
+  rd {{ loopback_ip }}:11
+  route-target both 401233:11
+  
+{# MAC VRFs #}
+{%- for mvrf in device.get_config_context().get("vrfs", {}).get("mac", []) %}
+{%- set vlan_id = mvrf.vlan_id %}
+{%- set offset = mvrf.get("id_offset", 0) %}
+mac vrf {{ mvrf.name }}
+ rd {{ loopback_ip }}:{{ vlan_id }}
+ route-target both evpn-auto-rt
+ route-target both {{ vlan_id }}:{{ device.id + offset }}
+exit
+!
+{%- endfor %}
+{% if device.get_config_context().motd %}
+banner motd {{ device.get_config_context().motd }}
+{%- endif %}
+
+{%- if device.get_config_context().ntp_servers or device.get_config_context().ntp6_servers %}
+feature ntp
+  ntp enable
+exit
+!
+  {%- if device.get_config_context().ntp_servers %}
+    {%- for server in device.get_config_context().ntp_servers %}
+ntp server {{ server }}
+    {%- endfor %}
+  {%- endif %}
+
+  {%- if device.get_config_context().ntp6_servers %}
+    {%- for server in device.get_config_context().ntp6_servers %}
+ntp server {{ server }}
+    {%- endfor %}
+  {%- endif %}
+{%- endif %}
+
+{%- if device.get_config_context().dns_servers %}
+  {%- for server in device.get_config_context().dns_servers %}
+ip name-server {{ server }}
+  {%- endfor %}
+{%- endif %}
+
+{%- if device.get_config_context().dns6_servers %}
+  {%- for server in device.get_config_context().dns6_servers %}
+ip name-server {{ server }}
+  {%- endfor %}
+{%- endif %}
+
+{#- IS-IS config #}
+{%- if device.get_config_context().isis %}
+  {%- if device.get_config_context().isis.proccess_tag %}
+router isis {{ device.get_config_context().isis.proccess_tag }}
+  {%- else %}
+router isis
+  {%- endif %}
+  
+  {%- if device.get_config_context().isis.id %}
+ net {{ device.get_config_context().isis.id }}
+  {%- endif %}
+  
+  {%- if device.get_config_context().isis.level %}
+ is-type {{ device.get_config_context().isis.level }}
+  {%- endif %}
+  
+  {%- if device.get_config_context().isis.metric_style %}
+ metric-style {{ device.get_config_context().isis.metric_style }}
+  {%- endif %}
+  
+  {%- if device.get_config_context().isis.metric_style %}
+ metric-style {{ device.get_config_context().isis.metric_style }}
+  {%- endif %}
+  
+  {%- if device.get_config_context().isis.mpls_traffic_eng %}
+ mpls traffic-eng {{ device.get_config_context().isis.mpls_traffic_eng }}
+  {%- endif %}  
+  {%- if device.get_config_context().isis.sr_block %}
+ isis segment-routing global block {{ device.get_config_context().isis.sr_block }}
+ segment-routing mpls
+  {%- endif %}
+{%- endif %}
+exit
+
+{%- set bgp = device.get_config_context().get("bgp", {}) %}
+{%- for asn, asn_data in bgp.get("asn", {}).items() %}
+router bgp {{ asn }}
+  {%- if asn_data.get("router_id") %}
+ bgp router-id {{ asn_data.router_id }}
+  {%- endif %}
+  {%- if asn_data.get("cluster_id") %}
+ bgp cluster-id {{ asn_data.cluster_id }}
+  {%- endif %}
+  {%- if asn_data.get("no_route_filter", {}) %}
+ no bgp inbound-route-filter
+  {%- endif %}
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+ neighbor {{ pg_name }} peer-group
+ neighbor {{ pg_name }} remote-as {{ pg_data.remote_as }}
+ neighbor {{ pg_name }} update-source {{ pg_data.update_source }}
+ neighbor {{ pg_name }} timers {{ pg_data.timers }}
+  {%- endfor %}
+
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- for neighbor_ip in pg_data.get("neighbors", {}) %}
+ neighbor {{ neighbor_ip }} peer-group {{ pg_name }}
+    {%- endfor %}
+  {%- endfor %}
+ !
+ address-family ipv4 unicast
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- if pg_data.get("address_family", {}).get("ipv4", {}).get("unicast") %}
+ neighbor {{ pg_name }} activate
+		{%- if pg_data.address_family.ipv4.unicast.get("route-reflector-client", {}) %}
+ neighbor {{ pg_name }} route-reflector-client
+		{%- endif %}
+      {%- set redist = pg_data.address_family.ipv4.unicast.get("redistribute", {}) %}
+      {%- for proto, options in redist.items() %}
+ redistribute {{ proto }}{% if options.route_map %} route-map {{ options.route_map }}{% endif %}
+
+      {%- endfor %}
+    {%- endif %}
+  {%- endfor %}
+ exit-address-family
+ !
+ address-family vpnv4 unicast
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- if pg_data.get("address_family", {}).get("vpnv4", {}).get("unicast") is not none %}
+ neighbor {{ pg_name }} activate
+		{%- if pg_data.address_family.ipv4.unicast.get("route-reflector-client", {}) %}
+ neighbor {{ pg_name }} route-reflector-client
+		{%- endif %}
+    {%- endif %}
+  {%- endfor %}
+ exit-address-family
+ !
+ address-family l2vpn evpn
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- if pg_data.get("address_family", {}).get("l2vpn", {}).get("evpn") is not none %}
+ neighbor {{ pg_name }} activate
+		{%- if pg_data.address_family.ipv4.unicast.get("route-reflector-client", {}) %}
+ neighbor {{ pg_name }} route-reflector-client
+		{%- endif %}
+    {%- endif %}
+  {%- endfor %}
+ exit-address-family
+ !
+ address-family ipv6 unicast
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- if pg_data.get("address_family", {}).get("ipv6", {}).get("unicast") %}
+ neighbor {{ pg_name }} activate
+  		{%- if pg_data.address_family.ipv6.unicast.get("route-reflector-client", {}) %}
+ route-reflector-client
+		{%- endif %}
+      {%- set redist = pg_data.address_family.ipv6.unicast.get("redistribute", {}) %}
+      {%- for proto, options in redist.items() %}
+ redistribute {{ proto }}{% if options.route_map %} route-map {{ options.route_map }}{% endif %}
+      {%- endfor %}
+    {%- endif %}
+  {%- endfor %}
+ exit-address-family
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- for vrf_name, vrf_data in pg_data.get("address_family", {}).get("ipv4", {}).get("vrf", {}).items() %}
+ !
+ address-family ipv4 vrf {{ vrf_name }}
+  		{%- if vrf_data.get("route-reflector-client", {}) %}
+ route-reflector-client
+		{%- endif %}
+      {%- for proto, options in vrf_data.get("redistribute", {}).items() %}
+ redistribute {{ proto }}
+      {%- endfor %}
+	  
+ exit-address-family
+    {%- endfor %}
+  {%- endfor %}
+!
+exit
+{%- endfor %}
+!
+
+{# Interface configuration #}
+{#-- Precompute parent interfaces of EVPN subinterfaces --#}
+{%- set evpn_parents = [] %}
+{%- for interface in device.interfaces.all() %}
+  {#- Collect EVPN parent interfaces on the fly #}
+  {%- if interface.cf.get("evpn_access") and '.' in interface.name %}
+    {%- set parent_name = interface.name.split('.')[0] %}
+    {%- if parent_name not in evpn_parents %}
+      {%- set _ = evpn_parents.append(parent_name) %}
+    {%- endif %}
+  {%- endif %}
+{%- endfor %}
+{%- for interface in device.interfaces.all() %}
+  {#- Handle EVPN subinterfaces first #}
+  {%- if interface.cf.get("evpn_access") %}
+interface {{ interface.name }}
+  switchport
+        {%- set vlan_list = interface.tagged_vlans.all() | list %}
+  encapsulation dot1q {{ vlan_list[0].vid if vlan_list else '???' }} 
+  rewrite pop
+  mtu {{ interface.mtu | default(9216) }}
+  access-if-evpn
+    map vpn-id {{ interface.cf.get("vpn_id", "???") }}
+    exit
+  {%- else %}
+    {#- Handle bridge interfaces #}
+    {%- if interface.type == "bridge" %}
+{{ interface.name }} protocol ieee vlan-bridge
+    {%- elif interface.type == "virtual" and "vlan1." in interface.name and interface.parent %}
+vlan {{ interface.name | replace("vlan1.", "") }} bridge {{ interface.parent.name | replace("bridge", "") }}
+interface {{ interface.name }}
+    {%- else %}
+interface {{ interface.name }}
+    {%- endif %}
+    {%- if interface.enabled and interface.type != "bridge" %}
+  no shutdown
+      {%- if interface.type != "virtual" %}
+  lldp-agent
+  set lldp enable txrx
+  set lldp chassis-id-tlv ip-address
+  set lldp port-id-tlv if-name
+  set lldp management-address-tlv ip-address
+  lldp tlv basic-mgmt port-description select
+  lldp tlv basic-mgmt system-name select
+  lldp tlv basic-mgmt system-capabilities select
+  lldp tlv basic-mgmt management-address select
+  exit
+      {%- endif %}
+    {%- elif not interface.enabled and interface.type != "bridge" %}
+  shutdown
+    {%- endif %}
+    {#- Emit switchport if in bridge group or has EVPN-tagged children #}
+    {%- if interface.bridge or interface.child_interfaces.all() | selectattr("cf.evpn_access") | list or interface.name in evpn_parents %}
+  switchport
+      {%- if interface.bridge %}
+  bridge-group {{ interface.bridge.name | replace("bridge", "") }}
+      {%- endif %}
+    {%- endif %}
+    {%- if interface.description %}
+  description "{{ interface.description }}"
+    {%- endif %}
+    {%- if interface.mode %}
+      {%- if interface.mode == 'access' %}
+  switchport mode access
+        {%- if interface.untagged_vlan %}
+  switchport access vlan {{ interface.untagged_vlan.vid }}
+        {%- endif %}
+      {%- elif interface.mode == 'tagged' %}
+  switchport mode trunk
+        {%- if interface.untagged_vlan %}
+  switchport trunk allowed vlan add {{ interface.untagged_vlan.vid }}
+  switchport trunk native vlan {{ interface.untagged_vlan.vid }}
+        {%- endif %}
+        {%- for vlan in interface.tagged_vlans.all() %}
+  switchport trunk allowed vlan add {{ vlan.vid }}
+        {%- endfor %}
+      {%- endif %}
+    {%- endif %}
+    {%- if interface.mtu %}
+  mtu {{ interface.mtu }}
+    {%- endif %}
+    {%- if interface.vrf %}
+  ip vrf forwarding {{ interface.vrf.name }}
+    {%- endif %}
+    {%- for address in interface.ip_addresses.all() %}
+      {%- if ':' in (address | string) %}
+  ipv6 address {{ address }}
+      {%- elif '.' in (address | string) %}
+  ip address {{ address }}
+      {%- endif %}
+    {%- endfor %}
+    {%- if interface.lag and interface.lag.name.startswith("po") %}
+      {%- set chnum = interface.lag.name | replace("po", "") %}
+  channel-group {{ chnum }} mode active
+    {%- endif %}
+    {#- IS-IS via custom fields #}
+    {%- if interface.cf.get("isis_enabled") %}
+  ip router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
+  ipv6 router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
+      {%- if interface.cf.get("isis_network") %}
+  isis network {{ interface.cf.get("isis_network") }}
+      {%- endif %}
+      {%- if interface.cf.get("isis_circuit_type") %}
+  isis circuit-type {{ interface.cf.get("isis_circuit_type") }}
+      {%- endif %}
+    {%- endif %}
+  {%- endif %}
+    {%- if interface.cf.get("label_switching")%}
+  label-switching
+  {%- endif %}  
+  {%- if interface.cf.get("sid_index")%}
+  prefix-sid index {{ interface.cf.get("sid_index") }}
+  {%- endif %}  
+  exit
+  !
+{%- endfor %}
