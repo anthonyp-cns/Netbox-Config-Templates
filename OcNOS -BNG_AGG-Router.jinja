@@ -353,6 +353,9 @@ interface {{ interface.name }}
     {%- if interface.cf.get("label_switching")%}
   label-switching
   {%- endif %}  
+  {%- if interface.cf.get("sid_index")%}
+  prefix-sid index {{ interface.cf.get("sid_index") }}
+  {%- endif %} 
   exit
   !
 {%- endfor %}
