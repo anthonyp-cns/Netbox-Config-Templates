@@ -171,12 +171,10 @@ router isis
  isis segment-routing global block {{ isis_instance.sr_block }}
  segment-routing mpls
   {%- endif %}
-
-exit
+ exit
+!
 {%- endfor %}
-
 {%- endif %}
-
 {%- set bgp = device.get_config_context().get("bgp", {}) %}
 {%- for asn, asn_data in bgp.get("asn", {}).items() %}
 router bgp {{ asn }}
