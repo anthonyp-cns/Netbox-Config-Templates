@@ -335,11 +335,10 @@ interface {{ interface.name }}
   rewrite push dot1q {{ interface.untagged_vlan.vid }}
         {%- endif %}
       {%- elif interface.mode == 'tagged' %}
-  encapsulation dot1q
+      {%- for vlan in interface.tagged_vlans.all() %}
+  encapsulation dot1q {{ vlan.vid }}
+  {%- endfor %}
         {%- endif %}
-        {%- for vlan in interface.tagged_vlans.all() %}
-  rewrite push dot1q {{ vlan.vid }}
-        {%- endfor %}
       {%- endif %}
     {%- if interface.mtu %}
   mtu {{ interface.mtu }}
