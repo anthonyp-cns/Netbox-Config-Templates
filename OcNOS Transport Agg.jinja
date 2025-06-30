@@ -134,8 +134,8 @@ router isis
   {%- if device.get_config_context().isis.metric_style %}
  metric-style {{ device.get_config_context().isis.metric_style }}
   {%- endif %}
-   {%- if isis_instance.passive_interfaces %}
-  {%- for interface in isis_instance.passive_interfaces %}
+   {%- if device.get_config_context().isis.passive_interfaces %}
+  {%- for interface in device.get_config_context().isis.passive_interfaces %}
  passive-interface {{ interface }}
   {%- endfor %}
   {%- endif %}  
