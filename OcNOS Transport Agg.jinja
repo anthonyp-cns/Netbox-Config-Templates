@@ -49,7 +49,7 @@ segment-routing
 {%- endfor %}
 {%- set loopback_ip = loopbacks.get('loopback1', device.primary_ip4.address.ip if device.primary_ip4 else "0.0.0.0") %}
 
-{%- endfor %}
+
 {#- Example ASN or RT base #}
 {%- set asn = 401233 %}
 {# IP VRFs #}
