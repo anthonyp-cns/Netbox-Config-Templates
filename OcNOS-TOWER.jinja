@@ -299,6 +299,10 @@ interface {{ interface.name }}
     {%- if interface.description %}
   description "{{ interface.description }}"
     {%- endif %}
+    {%- if interface.cf.get("bridge_group") %}
+  switchport
+  bridge-group {{interface.cf.get("bridge_group")}}
+    {%- endif %}
     {%- if interface.mode %}
       {%- if interface.mode == 'access' %}
   switchport mode access
