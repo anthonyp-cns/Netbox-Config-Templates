@@ -247,6 +247,10 @@ exit
   {%- endif %}
 {%- endfor %}
 {%- for interface in device.interfaces.all() %}
+  {%- if interface.name == "eth0" %}
+interface {{ interface.name }}
+  ip address dhcp
+  {%- else %}
   {#- Handle EVPN subinterfaces first #}
   {%- if interface.cf.get("evpn_access") %}
 interface {{ interface.name }}
@@ -270,18 +274,6 @@ interface {{ interface.name }}
     {%- endif %}
     {%- if interface.enabled and interface.type != "bridge" and interface.type != "virtual" %}
   no shutdown
-      {%- if interface.type != "virtual" %}
-  lldp-agent
-  set lldp enable txrx
-  set lldp chassis-id-tlv ip-address
-  set lldp port-id-tlv if-name
-  set lldp management-address-tlv ip-address
-  lldp tlv basic-mgmt port-description select
-  lldp tlv basic-mgmt system-name select
-  lldp tlv basic-mgmt system-capabilities select
-  lldp tlv basic-mgmt management-address select
-  exit
-      {%- endif %}
     {%- elif not interface.enabled and interface.type != "bridge" %}
   shutdown
     {%- endif %}
@@ -347,6 +339,19 @@ interface {{ interface.name }}
   {%- if interface.cf.get("sid_index")%}
   prefix-sid index {{ interface.cf.get("sid_index") }}
   {%- endif %} 
+  {%- if interface.type != "virtual" %}
+  lldp-agent
+  set lldp enable txrx
+  set lldp chassis-id-tlv ip-address
+  set lldp port-id-tlv if-name
+  set lldp management-address-tlv ip-address
+  lldp tlv basic-mgmt port-description select
+  lldp tlv basic-mgmt system-name select
+  lldp tlv basic-mgmt system-capabilities select
+  lldp tlv basic-mgmt management-address select
+  exit
+  {%- endif %}
+  {%- endif %}
   exit
   !
 {%- endfor %}
