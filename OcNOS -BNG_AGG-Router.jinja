@@ -140,7 +140,7 @@ ip name-server {{ server }}
 {%- for isis_instance in device.get_config_context().get("isis", {}) %}
   {%- if isis_instance.proccess_tag %}
     {%- if isis_instance.vrf %}
-router isis {{ isis_instance.proccess_tag }} {{ isis_instance().get("vrf", {}) }}
+router isis {{ isis_instance.proccess_tag }} {{ isis_instance.vrf }}
     {%- else %}
 router isis {{ isis_instance.proccess_tag }} 
     {%- endif %}
