@@ -323,20 +323,12 @@ interface {{ interface.name }}
       {%- endif %}
     {%- endif %}
     {%- endif %}
-        {%- if interface.mode %}
-      {%- if interface.mode == 'access' %}
-  encapsulation untagged
-        {%- if interface.untagged_vlan %}
-  rewrite push dot1q {{ interface.untagged_vlan.vid }}
-        {%- endif %}
-      {%- elif interface.mode == 'tagged' %}
-  encapsulation dot1q
-        {%- endif %}
-        {%- for vlan in interface.tagged_vlans.all() %}
-  rewrite push dot1q {{ vlan.vid }}
-        {%- endfor %}
-      {%- endif %}
-    {%- endif %}
+
+
+
+
+
+
     {%- if interface.mtu %}
   mtu {{ interface.mtu }}
     {%- endif %}
