@@ -149,6 +149,11 @@ router isis
   {%- if isis_instance.mpls_traffic_eng %}
  mpls traffic-eng {{ isis_instance.mpls_traffic_eng }}
   {%- endif %}  
+  {%- if isis_instance.passive_interfaces %}
+  {%- for interface in isis_instance.passive_interfaces %}
+ passive-interface {{ interface }}
+  {%- endfor %}
+  {%- endif %} 
   {%- if isis_instance.sr_block %}
  isis segment-routing global block {{ isis_instance.sr_block }}
  segment-routing mpls
