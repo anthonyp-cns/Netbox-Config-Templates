@@ -304,6 +304,7 @@ interface {{ interface.name }}
     {%- if interface.description %}
   description "{{ interface.description }}"
     {%- endif %}
+    {%- if interface.parent.type == 'bridge' %}
     {%- if interface.mode %}
       {%- if interface.mode == 'access' %}
   switchport mode access
@@ -318,6 +319,21 @@ interface {{ interface.name }}
         {%- endif %}
         {%- for vlan in interface.tagged_vlans.all() %}
   switchport trunk allowed vlan add {{ vlan.vid }}
+        {%- endfor %}
+      {%- endif %}
+    {%- endif %}
+    {%- endif %}
+        {%- if interface.mode %}
+      {%- if interface.mode == 'access' %}
+  encapsulation untagged
+        {%- if interface.untagged_vlan %}
+  rewrite push dot1q {{ interface.untagged_vlan.vid }}
+        {%- endif %}
+      {%- elif interface.mode == 'tagged' %}
+  encapsulation dot1q
+        {%- endif %}
+        {%- for vlan in interface.tagged_vlans.all() %}
+  rewrite push dot1q {{ vlan.vid }}
         {%- endfor %}
       {%- endif %}
     {%- endif %}
