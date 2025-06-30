@@ -135,6 +135,7 @@ ip name-server {{ server }}
   {%- endfor %}
 {%- endif %}
 
+
 {#- IS-IS config #}
 {%- if device.get_config_context().isis %}
 {%- for isis_instance in device.get_config_context().get("isis", {}) %}
@@ -159,11 +160,7 @@ router isis
   {%- if isis_instance.metric_style %}
  metric-style {{ isis_instance.metric_style }}
   {%- endif %}
-  
-  {%- if isis_instance.metric_style %}
- metric-style {{ isis_instance.metric_style }}
-  {%- endif %}
-  
+
   {%- if isis_instance.mpls_traffic_eng %}
  mpls traffic-eng {{ isis_instance.mpls_traffic_eng }}
   {%- endif %}  
