@@ -328,23 +328,19 @@ interface {{ interface.name }}
     {%- if interface.description %}
   description "{{ interface.description }}"
     {%- endif %}
-    {%- if interface.mode %}
+{%- if interface.mode %}
       {%- if interface.mode == 'access' %}
-  switchport mode access
+  encapsulation untagged
         {%- if interface.untagged_vlan %}
-  switchport access vlan {{ interface.untagged_vlan.vid }}
+  rewrite push dot1q {{ interface.untagged_vlan.vid }}
         {%- endif %}
       {%- elif interface.mode == 'tagged' %}
-  switchport mode trunk
-        {%- if interface.untagged_vlan %}
-  switchport trunk allowed vlan add {{ interface.untagged_vlan.vid }}
-  switchport trunk native vlan {{ interface.untagged_vlan.vid }}
+  encapsulation dot1q
         {%- endif %}
         {%- for vlan in interface.tagged_vlans.all() %}
-  switchport trunk allowed vlan add {{ vlan.vid }}
+  rewrite push dot1q {{ vlan.vid }}
         {%- endfor %}
       {%- endif %}
-    {%- endif %}
     {%- if interface.mtu %}
   mtu {{ interface.mtu }}
     {%- endif %}
