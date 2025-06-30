@@ -143,6 +143,7 @@ ip name-server {{ server }}
 router isis {{ isis_instance.proccess_tag }} {{ isis_instance().get("vrf", {}) }}
     {%- else %}
 router isis {{ isis_instance.proccess_tag }} 
+    {%- endif %}
   {%- else %}
 router isis
   {%- endif %}
