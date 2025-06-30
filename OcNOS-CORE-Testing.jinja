@@ -266,42 +266,43 @@ exit
 {#-- Precompute parent interfaces of EVPN subinterfaces --#}
 {%- set evpn_parents = [] %}
 {%- for interface in device.interfaces.all() %}
+
+  {#- Collect EVPN parent interfaces on the fly #}
+  {%- if interface.cf.get("evpn_access") and '.' in interface.name %}
+    {%- set parent_name = interface.name.split('.')[0] %}
+    {%- if parent_name not in evpn_parents %}
+      {%- set _ = evpn_parents.append(parent_name) %}
+    {%- endif %}
+  {%- endif %}
+{%- endfor %}
+{%- for interface in device.interfaces.all() %}
   {%- if interface.name == "eth0" %}
   ip address dhcp
-    {%- else %}
-    {#- Collect EVPN parent interfaces on the fly #}
-    {%- if interface.cf.get("evpn_access") and '.' in interface.name %}
-      {%- set parent_name = interface.name.split('.')[0] %}
-      {%- if parent_name not in evpn_parents %}
-        {%- set _ = evpn_parents.append(parent_name) %}
-      {%- endif %}
-    {%- endif %}
-  {%- endfor %}
-  {%- for interface in device.interfaces.all() %}
-    {#- Handle EVPN subinterfaces first #}
-    {%- if interface.cf.get("evpn_access") %}
+  {%- else %}
+  {#- Handle EVPN subinterfaces first #}
+  {%- if interface.cf.get("evpn_access") %}
 interface {{ interface.name }}
   switchport
-         {%- set vlan_list = interface.tagged_vlans.all() | list %}
+        {%- set vlan_list = interface.tagged_vlans.all() | list %}
   encapsulation dot1q {{ vlan_list[0].vid if vlan_list else '???' }} 
   rewrite pop
   mtu {{ interface.mtu | default(9216) }}
   access-if-evpn
     map vpn-id {{ interface.cf.get("vpn_id", "???") }}
     exit
-   {%- else %}
-      {#- Handle bridge interfaces #}
-      {%- if interface.type == "bridge" %}
+  {%- else %}
+    {#- Handle bridge interfaces #}
+    {%- if interface.type == "bridge" %}
 {{ interface.name }} protocol ieee vlan-bridge
-      {%- elif interface.type == "virtual" and "vlan1." in interface.name and interface.parent %}
+    {%- elif interface.type == "virtual" and "vlan1." in interface.name and interface.parent %}
 vlan {{ interface.name | replace("vlan1.", "") }} bridge {{ interface.parent.name | replace("bridge", "") }}
 interface {{ interface.name }}
-      {%- else %}
+    {%- else %}
 interface {{ interface.name }}
-      {%- endif %}
-      {%- if interface.enabled and interface.type != "bridge" %}
+    {%- endif %}
+    {%- if interface.enabled and interface.type != "bridge" %}
   no shutdown
-        {%- if interface.type != "virtual" %}
+      {%- if interface.type != "virtual" %}
   lldp-agent
   set lldp enable txrx
   set lldp chassis-id-tlv ip-address
@@ -312,29 +313,29 @@ interface {{ interface.name }}
   lldp tlv basic-mgmt system-capabilities select
   lldp tlv basic-mgmt management-address select
   exit
-       {%- endif %}
-     {%- elif not interface.enabled and interface.type != "bridge" %}
-  shutdown
       {%- endif %}
-      {#- Emit switchport if in bridge group or has EVPN-tagged children #}
-      {%- if interface.bridge or interface.child_interfaces.all() | selectattr("cf.evpn_access") | list or interface.name in evpn_parents %}
+    {%- elif not interface.enabled and interface.type != "bridge" %}
+  shutdown
+    {%- endif %}
+    {#- Emit switchport if in bridge group or has EVPN-tagged children #}
+    {%- if interface.bridge or interface.child_interfaces.all() | selectattr("cf.evpn_access") | list or interface.name in evpn_parents %}
   switchport
-       {%- if interface.bridge %}
+      {%- if interface.bridge %}
   bridge-group {{ interface.bridge.name | replace("bridge", "") }}
-        {%- endif %}
-     {%- endif %}
-     {%- if interface.description %}
+      {%- endif %}
+    {%- endif %}
+    {%- if interface.description %}
   description "{{ interface.description }}"
-     {%- endif %}
-      {%- if interface.mode %}
-       {%- if interface.mode == 'access' %}
+    {%- endif %}
+    {%- if interface.mode %}
+      {%- if interface.mode == 'access' %}
   switchport mode access
         {%- if interface.untagged_vlan %}
   switchport access vlan {{ interface.untagged_vlan.vid }}
-         {%- endif %}
-       {%- elif interface.mode == 'tagged' %}
+        {%- endif %}
+      {%- elif interface.mode == 'tagged' %}
   switchport mode trunk
-          {%- if interface.untagged_vlan %}
+        {%- if interface.untagged_vlan %}
   switchport trunk allowed vlan add {{ interface.untagged_vlan.vid }}
   switchport trunk native vlan {{ interface.untagged_vlan.vid }}
         {%- endif %}
@@ -378,10 +379,8 @@ interface {{ interface.name }}
   {%- if interface.cf.get("sid_index")%}
   prefix-sid index {{ interface.cf.get("sid_index") }}
   {%- endif %}  
-  {%- endif %}
   exit
   !
-
 {%- endfor %}
 line vty 1 871
  exec-timeout 35791
