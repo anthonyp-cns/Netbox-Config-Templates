@@ -148,8 +148,34 @@ router isis {{ isis_instance.proccess_tag }}
 router isis
   {%- endif %}
   
- 
+  {%- if isis_instance.id %}
+ net {{ isis_instance.id }}
+  {%- endif %}
+  
+  {%- if isis_instance.level %}
+ is-type {{ isis_instance.level }}
+  {%- endif %}
+  
+  {%- if isis_instance.metric_style %}
+ metric-style {{ isis_instance.metric_style }}
+  {%- endif %}
+  
+  {%- if isis_instance.metric_style %}
+ metric-style {{ isis_instance.metric_style }}
+  {%- endif %}
+  
+  {%- if isis_instance.mpls_traffic_eng %}
+ mpls traffic-eng {{ isis_instance.mpls_traffic_eng }}
+  {%- endif %}  
+  {%- if isis_instance.sr_block %}
+ isis segment-routing global block {{ isis_instance.sr_block }}
+ segment-routing mpls
+  {%- endif %}
+
+exit
 {%- endfor %}
+
+{%- endif %}
 
 {%- set bgp = device.get_config_context().get("bgp", {}) %}
 {%- for asn, asn_data in bgp.get("asn", {}).items() %}
