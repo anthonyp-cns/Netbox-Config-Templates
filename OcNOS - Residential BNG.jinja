@@ -72,12 +72,7 @@ evpn irb-forwarding anycast-gateway-mac 0077.8899.5577
   {%- endif %}
 {%- endfor %}
 {%- set loopback_ip = loopbacks.get('loopback1', device.primary_ip4.address.ip if device.primary_ip4 else "0.0.0.0") %}
-{%- set vrfs = [] %}
-{%- for interface in device.interfaces.all() %}
-  {%- if interface.vrf and interface.vrf not in vrfs %}
-    {%- set _ = vrfs.append(interface.vrf) %}
-  {%- endif %}
-{%- endfor %}
+
 evpn mpls vtep-ip-global {{ loopback_ip }}
 
 evpn mpls id 1101
@@ -88,14 +83,6 @@ evpn mpls id 1201
  host-reachability-protocol evpn-bgp mac1201
  evpn irb irb1201
 !
-{#- ############################ Fix this bit ################################# #}
-{%- for vrf in vrfs %}
-ip vrf {{ vrf.name }}
-rd {{ loopback_ip }}:11
-route-target both 401233:11
-!
-{%- endfor %}
-{#- Example ASN or RT base #}
 {%- set asn = 401233 %}
 {# IP VRFs #}
 {%- for vrf in device.get_config_context().get("vrfs", {}).get("ip", []) %}
