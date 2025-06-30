@@ -379,6 +379,7 @@ interface {{ interface.name }}
   {%- if interface.cf.get("sid_index")%}
   prefix-sid index {{ interface.cf.get("sid_index") }}
   {%- endif %} 
+  {%- endif %}
   {%- if interface.type != "virtual" %}
   lldp-agent
   set lldp enable txrx
@@ -390,7 +391,6 @@ interface {{ interface.name }}
   lldp tlv basic-mgmt system-capabilities select
   lldp tlv basic-mgmt management-address select
   exit
-  {%- endif %}
   {%- endif %}
   exit
   !
