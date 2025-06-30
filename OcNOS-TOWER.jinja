@@ -238,9 +238,20 @@ router bgp {{ asn }}
 exit
 {%- endfor %}
 !
+{#-- Set up any associated bridges and VLAN Databases 
+bridge 1 protocol ieee vlan-bridge
+vlan database
+ vlan 1101 bridge 1 state enable
+ vlan 1201 bridge 1 state enable
+!
+
+#}
+
 {# Interface configuration #}
 {#-- Precompute parent interfaces of EVPN subinterfaces --#}
 {%- set evpn_parents = [] %}
+{%- set vlans = [] %}
+
 {%- for interface in device.interfaces.all() %}
   {#- Collect EVPN parent interfaces on the fly #}
   {%- if interface.cf.get("evpn_access") and '.' in interface.name %}
@@ -249,7 +260,27 @@ exit
       {%- set _ = evpn_parents.append(parent_name) %}
     {%- endif %}
   {%- endif %}
+{%- if interface.untagged_vlan and interface.untagged_vlan.vid %}
+    {%- if interface.untagged_vlan.vid not in vlans %}
+      {%- set _ = vlans.append(interface.untagged_vlan.vid) %}
+    {%- endif %}
+  {%- endif %}
+
+  {%- if interface.tagged_vlans %}
+    {%- for vlan in interface.tagged_vlans.all() %}
+      {%- if vlan.vid not in vlans %}
+        {%- set _ = vlans.append(vlan.vid) %}
+      {%- endif %}
+    {%- endfor %}
+  {%- endif %}
 {%- endfor %}
+{%- if vlans %}
+vlan database
+  {%- for vlan in vlans %}
+  vlan {{vlan}} bridge 1 stae enable
+  {%- endfor %}
+{%- endif %}
+
 {%- for interface in device.interfaces.all() %}
   {#- Handle EVPN subinterfaces first #}
   {%- if interface.cf.get("evpn_access") %}
