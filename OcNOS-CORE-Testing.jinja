@@ -276,6 +276,7 @@ exit
 {%- endfor %}
 {%- for interface in device.interfaces.all() %}
   {%- if interface.name == "eth0" %}
+interface {{ interface.name }}
   ip address dhcp
   {%- else %}
   {#- Handle EVPN subinterfaces first #}
