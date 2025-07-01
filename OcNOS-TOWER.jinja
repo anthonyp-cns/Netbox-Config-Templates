@@ -269,7 +269,7 @@ vlan database
 bridge 1 protocol ieee vlan-bridge
 vlan database
   {%- for vlan in vlans %}
-  vlan {{vlan}} bridge 1 stae enable
+  vlan {{vlan}} bridge 1 state enable
   {%- endfor %}
 {%- endif %}
 
