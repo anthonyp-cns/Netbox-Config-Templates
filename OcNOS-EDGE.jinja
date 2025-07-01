@@ -70,6 +70,7 @@ ip vrf {{ vrf.name }}
 exit
 !
 {%- endfor %}
+ip vrf management 
 ip vrf alliance-mgmt
   rd {{ loopback_ip }}:11
   route-target both 401233:11
@@ -231,6 +232,19 @@ router bgp {{ asn }}
 exit
 {%- endfor %}
 !
+interface lo
+ ip address 127.0.0.1/8
+ ipv6 address ::1/128
+exit
+!
+interface lo.management
+ ip vrf forwarding management
+ ip address 127.0.0.1/8
+ ipv6 address ::1/128
+exit
+!
+
+
 {# Interface configuration #}
 {#-- Precompute parent interfaces of EVPN subinterfaces --#}
 {%- set evpn_parents = [] %}
@@ -246,6 +260,7 @@ exit
 {%- for interface in device.interfaces.all() %}
   {%- if interface.name == "eth0" %}
 interface {{ interface.name }}
+  ip vrf forwarding management
   ip address dhcp
   {%- else %}
   {#- Handle EVPN subinterfaces first #}
