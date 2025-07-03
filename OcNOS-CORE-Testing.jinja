@@ -39,6 +39,10 @@ lldp tlv-select basic-mgmt management-address
 evpn mpls enable
 evpn mpls irb
 
+{#- Raw port breakout #}
+hardware-profile port-config mode2
+port ce14 breakout 4X10g
+
 {#- ip prefix-list pl-asn401233 
  seq 5 permit 203.0.113.0/24 le 32
 !
