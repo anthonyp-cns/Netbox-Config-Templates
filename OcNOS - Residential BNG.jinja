@@ -331,9 +331,9 @@ interface {{ interface.name }}
     {%- else %}
 interface {{ interface.name }}
     {%- endif %}
-    {%- if interface.enabled and interface.type != "bridge" %}
+    {%- if interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
   no shutdown
-    {%- elif not interface.enabled and interface.type != "bridge" %}
+    {%- elif not interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
   shutdown
     {%- endif %}
     {#- Emit switchport if in bridge group or has EVPN-tagged children #}
@@ -394,7 +394,7 @@ interface {{ interface.name }}
   prefix-sid index {{ interface.cf.get("sid_index") }}
   {%- endif %}
   {%- endif %}
-  {%- if interface.type != "virtual" %}
+    {%- if interface.type not in ["bridge", "lag", "virtual"] %}
   lldp-agent
   set lldp enable txrx
   set lldp chassis-id-tlv ip-address
