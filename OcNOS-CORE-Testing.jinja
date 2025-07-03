@@ -15,6 +15,8 @@ snmp-server enable traps link linkUp
 {# hardware-profile filter evpn-mpls-mh enable #}
 hardware-profile statistics voq-full-color enable
 hardware-profile statistics cfm-ccm enable
+hardware-profile port-config mode2
+port ce14 breakout 4X10g
 
 qos enable
 mpls ftn-ecmp ldp
@@ -42,8 +44,7 @@ evpn mpls enable
 evpn mpls irb
 
 {#- Raw port breakout #}
-hardware-profile port-config mode2
-port ce14 breakout 4X10g
+
 
 {#- ip prefix-list pl-asn401233 
  seq 5 permit 203.0.113.0/24 le 32
@@ -324,7 +325,7 @@ interface {{ interface.name }}
     {%- else %}
 interface {{ interface.name }}
     {%- endif %}
-    {%- if interface.enabled and interface.type != "bridge" %}
+    {%- if interface.enabled and interface.type != "bridge"||"lag"||"virtual" %}
   no shutdown
     {%- elif not interface.enabled and interface.type != "bridge" %}
   shutdown
@@ -392,7 +393,7 @@ interface {{ interface.name }}
   prefix-sid index {{ interface.cf.get("sid_index") }}
   {%- endif %}  
   {%- endif %}
-  {%- if interface.type != "virtual" %}
+  {%- if interface.type != "virtual" or interface.type != "lag"%}
   lldp-agent
   set lldp enable txrx
   set lldp chassis-id-tlv ip-address
