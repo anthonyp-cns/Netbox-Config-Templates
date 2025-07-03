@@ -13,7 +13,9 @@ snmp-server enable traps link linkDown
 snmp-server enable traps link linkUp
 
 {# hardware-profile filter evpn-mpls-mh enable #}
-hardware-profile statistics ingress-acl enable
+hardware-profile statistics voq-full-color enable
+hardware-profile statistics cfm-ccm enable
+
 qos enable
 mpls ftn-ecmp ldp
 
