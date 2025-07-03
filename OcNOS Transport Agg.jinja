@@ -25,6 +25,9 @@ ipv6 dns relay
 feature ntp vrf management
 ntp enable vrf management
 feature rsyslog
+evpn mpls enable
+evpn mpls irb
+evpn irb-forwarding anycast-gateway-mac 0077.8899.5577
 
 lldp run
 lldp tlv-select basic-mgmt system-name
