@@ -286,7 +286,7 @@ interface {{ interface.name }}
     {%- endif %}
     {%- if interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
   no shutdown
-    {%- elif not interface.enabled andinterface.type not in ["bridge", "lag", "virtual"] %}
+    {%- elif not interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
   shutdown
     {%- endif %}
     {#- Emit switchport if in bridge group or has EVPN-tagged children #}
