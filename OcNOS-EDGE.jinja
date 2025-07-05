@@ -43,19 +43,7 @@ evpn mpls enable
   {%- endif %}
 {%- endfor %}
 {%- set loopback_ip = loopbacks.get('loopback1', device.primary_ip4.address.ip if device.primary_ip4 else "0.0.0.0") %}
-{%- set vrfs = [] %}
-{%- for interface in device.interfaces.all() %}
-  {%- if interface.vrf and interface.vrf not in vrfs %}
-    {%- set _ = vrfs.append(interface.vrf) %}
-  {%- endif %}
-{%- endfor %}
-{#- ############################ Fix this bit ################################# #}
-{%- for vrf in vrfs %}
-ip vrf {{ vrf.name }}
-rd {{ loopback_ip }}:11
-route-target both 401233:11
-!
-{%- endfor %}
+
 {#- Example ASN or RT base #}
 {%- set asn = 401233 %}
 {# IP VRFs #}
@@ -71,6 +59,7 @@ exit
 !
 {%- endfor %}
 ip vrf management 
+
 ip vrf alliance-mgmt
   rd {{ loopback_ip }}:11
   route-target both 401233:11
