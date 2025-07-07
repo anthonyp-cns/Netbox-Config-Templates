@@ -130,8 +130,11 @@ router isis
  metric-style {{ device.get_config_context().isis.metric_style }}
   {%- endif %}
   
-  {%- if device.get_config_context().isis.metric_style %}
- metric-style {{ device.get_config_context().isis.metric_style }}
+  {%- if device.get_config_context().isis.distribute_default %}
+ default-information originate always
+ address-family ipv6
+ default-information originate always
+ exit-address-family
   {%- endif %}
    {%- if device.get_config_context().isis.passive_interfaces %}
   {%- for interface in device.get_config_context().isis.passive_interfaces %}
