@@ -121,13 +121,16 @@ interface irb1101
  evpn irb-if-forwarding anycast-gateway-mac
  ip address 198.18.101.1/24 anycast
  ipv6 address 3fff:da7a:1101::1/48 anycast
+ ip router isis public
+ ipv6 router isis public
 !
 interface irb1201
  ip vrf forwarding alliance-evpn-cgnat
  evpn irb-if-forwarding anycast-gateway-mac
  ip address 100.66.0.1/22 anycast
  ipv6 address 3fff:da7a:1201::1/48 anycast
- 
+ ip router isis cgnat
+ ipv6 router isis cgnat
 
 {% if device.get_config_context().motd %}
 banner motd {{ device.get_config_context().motd }}
@@ -192,6 +195,11 @@ router isis
   {%- if isis_instance.passive_interfaces %}
   {%- for interface in isis_instance.passive_interfaces %}
  passive-interface {{ interface }}
+  {%- endfor %}
+  {%- endif %} 
+  {%- if isis_instance.redistribute %}
+  {%- for protocol in isis_instance.redistribute %}
+ redistribute {{ protocol }}
   {%- endfor %}
   {%- endif %} 
   {%- if isis_instance.mpls_traffic_eng %}
