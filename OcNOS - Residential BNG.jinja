@@ -418,3 +418,9 @@ interface {{ interface.name }}
 {%- endfor %}
 line vty 1 871
  exec-timeout 35791
+ exit
+{# Temp For testing #}
+ip route vrf alliance-evpn-public 198.18.104.0/24 198.18.101.5
+ip route vrf alliance-evpn-public 198.18.105.0/24 198.18.101.10
+ip route vrf alliance-evpn-cgnat 100.65.0.0/24 100.66.0.5
+ip route vrf alliance-evpn-cgnat 100.67.0.0/24 100.66.0.10
