@@ -351,9 +351,6 @@ interface {{ interface.name }}
   bridge-group {{ interface.bridge.name | replace("bridge", "") }}
       {%- endif %}
     {%- endif %}
-    {%- if interface.description %}
-  description "{{ interface.description }}"
-    {%- endif %}
 {%- if interface.mode %}
       {%- if interface.mode == 'access' %}
   encapsulation untagged
@@ -420,7 +417,9 @@ interface {{ interface.name }}
   lldp tlv basic-mgmt management-address select
   exit
   {%- endif %}
-
+    {%- if interface.description %}
+  description "{{ interface.description }}"
+    {%- endif %}
   exit
   !
 {%- endfor %}
@@ -435,4 +434,4 @@ line vty 1 871
  exec-timeout 35791
  exit
 
- 
+

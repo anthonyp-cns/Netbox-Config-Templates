@@ -325,9 +325,7 @@ interface {{ interface.name }}
   bridge-group {{ interface.bridge.name | replace("bridge", "") }}
       {%- endif %}
     {%- endif %}
-    {%- if interface.description %}
-  description "{{ interface.description }}"
-    {%- endif %}
+
     {%- if interface.cf.get("bridge_group") %}
   switchport
   bridge-group {{interface.cf.get("bridge_group")}}
@@ -397,6 +395,9 @@ interface {{ interface.name }}
   lldp tlv basic-mgmt management-address select
   exit
   {%- endif %}
+     {%- if interface.description %}
+  description "{{ interface.description }}"
+    {%- endif %}
   exit
   !
 {%- endfor %}
