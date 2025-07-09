@@ -7,12 +7,15 @@ no feature netconf-tls
 cml bulk-config limit cpu enable
 no service password-encryption
 bgp extended-asn-cap
-logging logfile ipilog 6
+logging logfile ocnoslog 7 size 419430400
+debug logfile ocnosdebug size 4194304
 snmp-server enable traps link linkDown
 snmp-server enable traps link linkUp
+
 hardware-profile filter evpn-mpls-mh enable
 hardware-profile statistics ingress-acl enable
 qos enable
+
 no ip domain-lookup
 ip domain-lookup vrf management
 tfo Disable
@@ -35,19 +38,31 @@ lldp tlv-select basic-mgmt management-address
 evpn mpls enable
 evpn mpls irb
 evpn mpls multihoming enable
-evpn irb-forwarding anycast-gateway-mac 0077.8899.5578
-evpn mpls id 1101
- host-reachability-protocol evpn-bgp mac1101
+
+{#- ip prefix-list pl-asn401233
+ seq 5 permit 203.0.113.0/24 le 32
 !
-evpn mpls id 1201
- host-reachability-protocol evpn-bgp mac1201
+ipv6 prefix-list pl-asn401233-ipv6
+ seq 5 permit 3fff:da7a::/32 le 128
 !
+route-map rm-permit-ibgp-out permit 10
+ match ip address prefix-list pl-asn401233
+!
+route-map rm-permit-ibgp-out deny 20
+!
+route-map rm-permit-ibgp-out-ipv6 permit 10
+ match ipv6 address prefix-list pl-asn401233-ipv6
+!
+route-map rm-permit-ibgp-out-ipv6 deny 20
+#}
+
 segment-routing
  mpls sr-prefer
  global block 16000 23999
  traffic-engineering
  exit-te
 !
+evpn irb-forwarding anycast-gateway-mac 0077.8899.5578
 {%- set loopbacks = {} %}
 {%- for iface in device.interfaces.all() %}
   {%- if "loopback" in iface.name.lower() %}
@@ -57,6 +72,14 @@ segment-routing
   {%- endif %}
 {%- endfor %}
 {%- set loopback_ip = loopbacks.get('loopback1', device.primary_ip4.address.ip if device.primary_ip4 else "0.0.0.0") %}
+
+evpn mpls vtep-ip-global {{ loopback_ip }}
+
+evpn mpls id 1101
+ host-reachability-protocol evpn-bgp mac1301
+ evpn irb irb1301
+
+!
 {%- set asn = 401233 %}
 {# IP VRFs #}
 {%- for vrf in device.get_config_context().get("vrfs", {}).get("ip", []) %}
@@ -83,13 +106,26 @@ ip vrf alliance-mgmt
 mac vrf {{ mvrf.name }}
  rd {{ loopback_ip }}:{{ vlan_id }}
  route-target both evpn-auto-rt
+ route-target both {{ vlan_id }}:{{ device.id + offset }}
 exit
 !
 {%- endfor %}
 evpn mpls vtep-ip-global {{ loopback_ip }}
+
+
+interface irb1301
+ ip vrf forwarding alliance-evpn-public
+ evpn irb-if-forwarding anycast-gateway-mac
+ ip address 198.18.201.1/24 anycast
+ ipv6 address 3fff:da7a:1301::1/48 anycast
+
+ 
+
 {% if device.get_config_context().motd %}
 banner motd {{ device.get_config_context().motd }}
 {%- endif %}
+
+
 
 {%- if device.get_config_context().ntp_servers or device.get_config_context().ntp6_servers %}
 feature ntp
@@ -121,7 +157,6 @@ ip name-server {{ server }}
   {%- endfor %}
 {%- endif %}
 
-
 {#- IS-IS config #}
 {%- if device.get_config_context().isis %}
 {%- for isis_instance in device.get_config_context().get("isis", {}) %}
@@ -146,15 +181,14 @@ router isis
   {%- if isis_instance.metric_style %}
  metric-style {{ isis_instance.metric_style }}
   {%- endif %}
-
-  {%- if isis_instance.mpls_traffic_eng %}
- mpls traffic-eng {{ isis_instance.mpls_traffic_eng }}
-  {%- endif %}  
   {%- if isis_instance.passive_interfaces %}
   {%- for interface in isis_instance.passive_interfaces %}
  passive-interface {{ interface }}
   {%- endfor %}
   {%- endif %} 
+  {%- if isis_instance.mpls_traffic_eng %}
+ mpls traffic-eng {{ isis_instance.mpls_traffic_eng }}
+  {%- endif %}  
   {%- if isis_instance.sr_block %}
  isis segment-routing global block {{ isis_instance.sr_block }}
  segment-routing mpls
@@ -163,6 +197,7 @@ router isis
 !
 {%- endfor %}
 {%- endif %}
+
 {%- set bgp = device.get_config_context().get("bgp", {}) %}
 {%- for asn, asn_data in bgp.get("asn", {}).items() %}
 router bgp {{ asn }}
@@ -303,26 +338,7 @@ interface {{ interface.name }}
     {%- if interface.description %}
   description "{{ interface.description }}"
     {%- endif %}
-    {%- if interface.parent.type == 'bridge' %}
-    {%- if interface.mode %}
-      {%- if interface.mode == 'access' %}
-  switchport mode access
-        {%- if interface.untagged_vlan %}
-  switchport access vlan {{ interface.untagged_vlan.vid }}
-        {%- endif %}
-      {%- elif interface.mode == 'tagged' %}
-  switchport mode trunk
-        {%- if interface.untagged_vlan %}
-  switchport trunk allowed vlan add {{ interface.untagged_vlan.vid }}
-  switchport trunk native vlan {{ interface.untagged_vlan.vid }}
-        {%- endif %}
-        {%- for vlan in interface.tagged_vlans.all() %}
-  switchport trunk allowed vlan add {{ vlan.vid }}
-        {%- endfor %}
-      {%- endif %}
-    {%- endif %}
-    {%- endif %}
-    {%- if interface.mode %}
+{%- if interface.mode %}
       {%- if interface.mode == 'access' %}
   encapsulation untagged
         {%- if interface.untagged_vlan %}
@@ -331,9 +347,8 @@ interface {{ interface.name }}
       {%- elif interface.mode == 'tagged' %}
       {%- for vlan in interface.tagged_vlans.all() %}
   encapsulation dot1q {{ vlan.vid }}
-        {%- endfor %}
+  {%- endfor %}
         {%- endif %}
-        
       {%- endif %}
     {%- if interface.mtu %}
   mtu {{ interface.mtu }}
@@ -375,9 +390,9 @@ interface {{ interface.name }}
   {%- endif %}  
   {%- if interface.cf.get("sid_index")%}
   prefix-sid index {{ interface.cf.get("sid_index") }}
-  {%- endif %} 
   {%- endif %}
-  {%- if interface.type not in ["bridge", "lag", "virtual"] %}
+  {%- endif %}
+    {%- if interface.type not in ["bridge", "lag", "virtual"] %}
   lldp-agent
   set lldp enable txrx
   set lldp chassis-id-tlv ip-address
@@ -389,6 +404,7 @@ interface {{ interface.name }}
   lldp tlv basic-mgmt management-address select
   exit
   {%- endif %}
+
   exit
   !
 {%- endfor %}

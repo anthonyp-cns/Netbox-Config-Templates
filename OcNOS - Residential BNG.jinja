@@ -379,6 +379,8 @@ interface {{ interface.name }}
     {%- if interface.cf.get("isis_enabled") %}
       {%- if interface.cf.get("isis_v6_only") %}
   ipv6 router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
+      {%- elif interface.cf.get("isis_v4_only") %}
+  ip router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
       {%- else %}
   ip router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
   ipv6 router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
