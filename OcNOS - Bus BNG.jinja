@@ -114,7 +114,7 @@ evpn mpls vtep-ip-global {{ loopback_ip }}
 
 
 interface irb1301
- ip vrf forwarding alliance-evpn-public
+ ip vrf forwarding alliance-evpn-biz
  evpn irb-if-forwarding anycast-gateway-mac
  ip address 198.18.201.1/24 anycast
  ipv6 address 3fff:da7a:1301::1/48 anycast
