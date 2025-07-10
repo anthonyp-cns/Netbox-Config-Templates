@@ -178,7 +178,8 @@ router isis
  segment-routing mpls
   {%- endif %}
 exit
-
+{%- endfor %}
+{%- endif %}
 {%- set bgp = device.get_config_context().get("bgp", {}) %}
 {%- for asn, asn_data in bgp.get("asn", {}).items() %}
 router bgp {{ asn }}
