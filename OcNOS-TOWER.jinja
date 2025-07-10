@@ -12,6 +12,7 @@ snmp-server enable traps link linkDown
 snmp-server enable traps link linkUp
 hardware-profile filter evpn-mpls-mh enable
 hardware-profile statistics ingress-acl enable
+mpls ftn-ecmp ldp
 qos enable
 no ip domain-lookup
 ip domain-lookup vrf management
@@ -44,6 +45,13 @@ evpn mpls id 1201
 !
 evpn mpls id 1301
  host-reachability-protocol evpn-bgp mac1301
+
+segment-routing
+ mpls sr-prefer
+ global block 16000 23999
+ traffic-engineering
+ exit-te
+
 {%- set loopbacks = {} %}
 {%- for iface in device.interfaces.all() %}
   {%- if "loopback" in iface.name.lower() %}
