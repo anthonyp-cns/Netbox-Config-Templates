@@ -337,15 +337,15 @@ interface {{ interface.name }}
   {%- endif %}
 
   {%- if interface.cf.get("bridge_group") %}
+  True
   switchport
   bridge-group {{interface.cf.get("bridge_group")}}
-  
-  {%- if interface.mode %}
-    {%- if interface.mode == 'access' %}
+    {%- if interface.mode %}
+      {%- if interface.mode == 'access' %}
   switchport mode access
-      {%- if interface.untagged_vlan %}
+        {%- if interface.untagged_vlan %}
   switchport access vlan {{ interface.untagged_vlan.vid }}
-      {%- endif %}
+        {%- endif %}
     {%- elif interface.mode == 'tagged' %}
   switchport mode trunk
       {%- if interface.untagged_vlan %}
