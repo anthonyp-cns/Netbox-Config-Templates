@@ -173,6 +173,11 @@ router isis
  passive-interface {{ interface }}
   {%- endfor %}
   {%- endif %} 
+  {%- if isis_instance.redistribute %}
+  {%- for protocol in isis_instance.redistribute %}
+ redistribute {{ protocol }}
+  {%- endfor %}
+  {%- endif %} 
   {%- if isis_instance.sr_block %}
  isis segment-routing global block {{ isis_instance.sr_block }}
  segment-routing mpls
