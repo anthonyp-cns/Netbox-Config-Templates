@@ -43,6 +43,15 @@ lldp tlv-select basic-mgmt management-address
 evpn mpls enable
 evpn mpls irb
 
+
+ip prefix-list pl-default_only 
+ seq 5 permit 0.0.0.0/0 le 32
+ exit
+route-map rm-permit-default_only permit 10
+ match ip address prefix-list pl-default_only
+exit
+route-map rm-permit-default_only deny 20
+
 {#- Raw port breakout #}
 
 
