@@ -339,7 +339,7 @@ interface {{ interface.name }}
   {%- if interface.cf.get("bridge_group") %}
   switchport
   bridge-group {{interface.cf.get("bridge_group")}}
-  {%- endif %}
+  
   {%- if interface.mode %}
     {%- if interface.mode == 'access' %}
   switchport mode access
@@ -357,6 +357,19 @@ interface {{ interface.name }}
       {%- endfor %}
     {%- endif %}
   {%- endif %}
+{%- elif interface.mode %}
+      {%- if interface.mode == 'access' %}
+  encapsulation untagged
+        {%- if interface.untagged_vlan %}
+  rewrite push dot1q {{ interface.untagged_vlan.vid }}
+        {%- endif %}
+      {%- elif interface.mode == 'tagged' %}
+      {%- for vlan in interface.tagged_vlans.all() %}
+  encapsulation dot1q {{ vlan.vid }}
+  {%- endfor %}
+        {%- endif %}
+      {%- endif %}
+
 
   {%- if interface.mtu %}
   mtu {{ interface.mtu }}
