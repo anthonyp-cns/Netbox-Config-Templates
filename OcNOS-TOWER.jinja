@@ -327,7 +327,7 @@ interface {{ interface.name }}
     {%- elif not interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
   shutdown
     {%- endif %}
-
+    
     {#- Emit switchport if in bridge group or has EVPN-tagged children #}
     {%- if interface.bridge or interface.child_interfaces.all() | selectattr("cf.evpn_access") | list or interface.name in evpn_parents %}
   switchport
@@ -336,18 +336,28 @@ interface {{ interface.name }}
       {%- endif %}
     {%- endif %}
 
-{%- if interface.mode %}
+    {%- if interface.cf.get("bridge_group") %}
+  switchport
+  bridge-group {{interface.cf.get("bridge_group")}}
+    {%- endif %}
+    {%- if interface.mode %}
       {%- if interface.mode == 'access' %}
-  encapsulation untagged
+  switchport mode access
         {%- if interface.untagged_vlan %}
-  rewrite push dot1q {{ interface.untagged_vlan.vid }}
+  switchport access vlan {{ interface.untagged_vlan.vid }}
         {%- endif %}
       {%- elif interface.mode == 'tagged' %}
-      {%- for vlan in interface.tagged_vlans.all() %}
-  encapsulation dot1q {{ vlan.vid }}
-  {%- endfor %}
+  switchport mode trunk
+        {%- if interface.untagged_vlan %}
+  switchport trunk allowed vlan add {{ interface.untagged_vlan.vid }}
+  switchport trunk native vlan {{ interface.untagged_vlan.vid }}
         {%- endif %}
+        {%- for vlan in interface.tagged_vlans.all() %}
+  switchport trunk allowed vlan add {{ vlan.vid }}
+        {%- endfor %}
       {%- endif %}
+    {%- endif %}
+    
     {%- if interface.mtu %}
   mtu {{ interface.mtu }}
     {%- endif %}
