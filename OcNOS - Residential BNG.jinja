@@ -425,7 +425,7 @@ interface {{ interface.name }}
 {%- endfor %}
 {# Static Routes #}
 {%- if device.get_config_context().static %}
-  {%- for route in device.get_config_context().static %}}
+  {%- for route in device.get_config_context().static %}
     {%- if route.get("vrf") %}
 ip route  vrf {{ route.get("vrf") }} {{ route.get("dst") }} {{ route.get("gw") }}
     {%- else %}
