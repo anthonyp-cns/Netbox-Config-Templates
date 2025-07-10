@@ -337,7 +337,6 @@ interface {{ interface.name }}
   {%- endif %}
 
   {%- if interface.cf.get("bridge_group") %}
-  True
   switchport
   bridge-group {{interface.cf.get("bridge_group")}}
     {%- if interface.mode %}
