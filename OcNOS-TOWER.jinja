@@ -272,7 +272,7 @@ exit
       {%- set _ = evpn_parents.append(parent_name) %}
     {%- endif %}
   {%- endif %}
-{%- if interface.untagged_vlan and interface.untagged_vlan.vid %}
+  {%- if interface.untagged_vlan and interface.untagged_vlan.vid %}
     {%- if interface.untagged_vlan.vid not in vlans %}
       {%- set _ = vlans.append(interface.untagged_vlan.vid) %}
     {%- endif %}
@@ -286,6 +286,7 @@ exit
     {%- endfor %}
   {%- endif %}
 {%- endfor %}
+
 {%- if vlans %}
 bridge 1 protocol ieee vlan-bridge
 vlan database
@@ -293,6 +294,7 @@ vlan database
   vlan {{vlan}} bridge 1 state enable
   {%- endfor %}
 {%- endif %}
+
 
 {%- for interface in device.interfaces.all() %}
   {%- if interface.name == "eth0" %}
@@ -314,86 +316,83 @@ interface {{ interface.name }}
     {#- Handle bridge interfaces #}
   {%- elif interface.type == "bridge" %}
 {{ interface.name }} protocol ieee vlan-bridge
-    {%- elif interface.type == "virtual" and "vlan1." in interface.name and interface.parent %}
+  {%- elif interface.type == "virtual" and "vlan1." in interface.name and interface.parent %}
 vlan {{ interface.name | replace("vlan1.", "") }} bridge {{ interface.parent.name | replace("bridge", "") }}
 interface {{ interface.name }}
-    {%- else %}
+  {%- else %}
 interface {{ interface.name }}
-    {%- endif %}
-
-
-    {%- if interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
+  {%- endif %}
+  {%- if interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
   no shutdown
-    {%- elif not interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
+  {%- elif not interface.enabled and interface.type not in ["bridge", "lag", "virtual"] %}
   shutdown
-    {%- endif %}
+  {%- endif %}
     
     {#- Emit switchport if in bridge group or has EVPN-tagged children #}
-    {%- if interface.bridge or interface.child_interfaces.all() | selectattr("cf.evpn_access") | list or interface.name in evpn_parents %}
+  {%- if interface.bridge or interface.child_interfaces.all() | selectattr("cf.evpn_access") | list or interface.name in evpn_parents %}
   switchport
-      {%- if interface.bridge %}
+    {%- if interface.bridge %}
   bridge-group {{ interface.bridge.name | replace("bridge", "") }}
-      {%- endif %}
-    {%- endif %}
-
-    {%- if interface.cf.get("bridge_group") %}
-  switchport
-  bridge-group {{interface.cf.get("bridge_group")}}
-    {%- endif %}
-    {%- if interface.mode %}
-      {%- if interface.mode == 'access' %}
-  switchport mode access
-        {%- if interface.untagged_vlan %}
-  switchport access vlan {{ interface.untagged_vlan.vid }}
-        {%- endif %}
-      {%- elif interface.mode == 'tagged' %}
-  switchport mode trunk
-        {%- if interface.untagged_vlan %}
-  switchport trunk allowed vlan add {{ interface.untagged_vlan.vid }}
-  switchport trunk native vlan {{ interface.untagged_vlan.vid }}
-        {%- endif %}
-        {%- for vlan in interface.tagged_vlans.all() %}
-  switchport trunk allowed vlan add {{ vlan.vid }}
-        {%- endfor %}
-      {%- endif %}
-    {%- endif %}
-    
-    {%- if interface.mtu %}
-  mtu {{ interface.mtu }}
-    {%- endif %}
-    {%- if interface.vrf %}
-  ip vrf forwarding {{ interface.vrf.name }}
-    {%- endif %}
-    {%- for address in interface.ip_addresses.all() %}
-      {%- if ':' in (address | string) %}
-  ipv6 address {{ address }}
-      {%- elif '.' in (address | string) %}
-  ip address {{ address }}
-      {%- endif %}
-    {%- endfor %}
-    {%- if interface.lag and interface.lag.name.startswith("po") %}
-      {%- set chnum = interface.lag.name | replace("po", "") %}
-  channel-group {{ chnum }} mode active
-    {%- endif %}
-    {#- IS-IS via custom fields #}
-    {%- if interface.cf.get("isis_enabled") %}
-  ip router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
-  ipv6 router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
-      {%- if interface.cf.get("isis_network") %}
-  isis network {{ interface.cf.get("isis_network") }}
-      {%- endif %}
-      {%- if interface.cf.get("isis_circuit_type") %}
-  isis circuit-type {{ interface.cf.get("isis_circuit_type") }}
-      {%- endif %}
     {%- endif %}
   {%- endif %}
-    {%- if interface.cf.get("label_switching")%}
+
+  {%- if interface.cf.get("bridge_group") %}
+  switchport
+  bridge-group {{interface.cf.get("bridge_group")}}
+  {%- endif %}
+  {%- if interface.mode %}
+    {%- if interface.mode == 'access' %}
+  switchport mode access
+      {%- if interface.untagged_vlan %}
+  switchport access vlan {{ interface.untagged_vlan.vid }}
+      {%- endif %}
+    {%- elif interface.mode == 'tagged' %}
+  switchport mode trunk
+      {%- if interface.untagged_vlan %}
+  switchport trunk allowed vlan add {{ interface.untagged_vlan.vid }}
+  switchport trunk native vlan {{ interface.untagged_vlan.vid }}
+      {%- endif %}
+      {%- for vlan in interface.tagged_vlans.all() %}
+  switchport trunk allowed vlan add {{ vlan.vid }}
+      {%- endfor %}
+    {%- endif %}
+  {%- endif %}
+
+  {%- if interface.mtu %}
+  mtu {{ interface.mtu }}
+  {%- endif %}
+  {%- if interface.vrf %}
+  ip vrf forwarding {{ interface.vrf.name }}
+  {%- endif %}
+  {%- for address in interface.ip_addresses.all() %}
+    {%- if ':' in (address | string) %}
+  ipv6 address {{ address }}
+    {%- elif '.' in (address | string) %}
+  ip address {{ address }}
+    {%- endif %}
+  {%- endfor %}
+  {%- if interface.lag and interface.lag.name.startswith("po") %}
+      {%- set chnum = interface.lag.name | replace("po", "") %}
+  channel-group {{ chnum }} mode active
+  {%- endif %}
+    {#- IS-IS via custom fields #}
+  {%- if interface.cf.get("isis_enabled") %}
+  ip router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
+  ipv6 router isis {{ interface.cf.get("isis_instance_name", "alliance") }}
+    {%- if interface.cf.get("isis_network") %}
+  isis network {{ interface.cf.get("isis_network") }}
+    {%- endif %}
+    {%- if interface.cf.get("isis_circuit_type") %}
+  isis circuit-type {{ interface.cf.get("isis_circuit_type") }}
+    {%- endif %}
+  {%- endif %}
+  {%- if interface.cf.get("label_switching")%}
   label-switching
   {%- endif %}  
   {%- if interface.cf.get("sid_index")%}
   prefix-sid index {{ interface.cf.get("sid_index") }}
   {%- endif %} 
-  {%- endif %}
+  {#- endif #}
   {%- if interface.type not in ["bridge", "lag", "virtual"] %}
   lldp-agent
   set lldp enable txrx
@@ -406,9 +405,9 @@ interface {{ interface.name }}
   lldp tlv basic-mgmt management-address select
   exit
   {%- endif %}
-     {%- if interface.description %}
+  {%- if interface.description %}
   description "{{ interface.description }}"
-    {%- endif %}
+  {%- endif %}
   exit
   !
 {%- endfor %}
