@@ -413,9 +413,9 @@ interface {{ interface.name }}
   {%- for route device.get_config_context().static %}
     {%- if route.get("route") %}
       {%- if route.get("vrf") %}
-ip route  vrf {{ route.get("vrf") }} {{ route.get("route").get("dst") }} {{ route.get("route").get("gw") }}
+ip route  vrf {{ route.get("vrf") }} {{ route.get("dst") }} {{ route.get("gw") }}
       {%- else %}
-ip route {{ route.get("route").get("dst") }} {{ route.get("route").get("gw") }}
+ip route {{ route.get("dst") }} {{ route.get("gw") }}
       {%- endif %}
     {%- endif %}
   {%- endfor %}
