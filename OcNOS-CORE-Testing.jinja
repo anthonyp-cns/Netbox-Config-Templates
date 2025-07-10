@@ -345,7 +345,7 @@ interface {{ interface.name }}
       {%- endif %}
     {%- endif %}
 
-    {%- if interface.mode %}
+    {%- if interface.mode and interface.cf.get(bridge_group) %}
       {%- if interface.mode == 'access' %}
   switchport mode access
         {%- if interface.untagged_vlan %}
