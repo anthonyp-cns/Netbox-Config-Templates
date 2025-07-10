@@ -359,6 +359,7 @@ interface {{ interface.name }}
   exit
   !
 {%- endfor %}
+
 {# Static Routes #}
 {%- if device.get_config_context().static %}
   {%- for route in device.get_config_context().static %}}
@@ -367,7 +368,9 @@ ip route  vrf {{ route.get("vrf") }} {{ route.get("dst") }} {{ route.get("gw") }
     {%- else %}
 ip route {{ route.get("dst") }} {{ route.get("gw") }}
     {%- endif %}
+!
   {%- endfor %}
 {%- endif %}
+
 line vty 1 871
  exec-timeout 35791

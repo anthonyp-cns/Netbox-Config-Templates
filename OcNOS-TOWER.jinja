@@ -409,16 +409,16 @@ interface {{ interface.name }}
   exit
   !
 {%- endfor %}
+
 {# Static Routes #}
 {%- if device.get_config_context().static %}
-  {%- for route device.get_config_context().static %}
-    {%- if route.get("route") %}
-      {%- if route.get("vrf") %}
+  {%- for route in device.get_config_context().static %}}
+    {%- if route.get("vrf") %}
 ip route  vrf {{ route.get("vrf") }} {{ route.get("dst") }} {{ route.get("gw") }}
-      {%- else %}
+    {%- else %}
 ip route {{ route.get("dst") }} {{ route.get("gw") }}
-      {%- endif %}
     {%- endif %}
+!
   {%- endfor %}
 {%- endif %}
 line vty 1 871
