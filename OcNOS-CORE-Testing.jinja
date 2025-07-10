@@ -142,40 +142,41 @@ ip name-server {{ server }}
 
 {#- IS-IS config #}
 {%- if device.get_config_context().isis %}
-  {%- if device.get_config_context().isis.proccess_tag %}
-router isis {{ device.get_config_context().isis.proccess_tag }}
+ {%- for isis_instance in device.get_config_context().get("isis", {}) %}
+  {%- if isis_instance.proccess_tag %}
+    {%- if isis_instance.vrf %}
+router isis {{ isis_instance.proccess_tag }} {{ isis_instance.vrf }}
+    {%- else %}
+router isis {{ isis_instance.proccess_tag }} 
+    {%- endif %}
   {%- else %}
 router isis
   {%- endif %}
   
-  {%- if device.get_config_context().isis.id %}
- net {{ device.get_config_context().isis.id }}
+  {%- if isis_instance.id %}
+ net {{ isis_instance.id }}
   {%- endif %}
   
-  {%- if device.get_config_context().isis.level %}
- is-type {{ device.get_config_context().isis.level }}
+  {%- if isis_instance.level %}
+ is-type {{ isis_instance.level }}
   {%- endif %}
   
-  {%- if device.get_config_context().isis.metric_style %}
- metric-style {{ device.get_config_context().isis.metric_style }}
+  {%- if isis_instance.metric_style %}
+ metric-style {{ isis_instance.metric_style }}
   {%- endif %}
-  
-  {%- if device.get_config_context().isis.metric_style %}
- metric-style {{ device.get_config_context().isis.metric_style }}
-  {%- endif %}
-    {%- if device.get_config_context().isis.passive_interfaces %}
-  {%- for interface in device.get_config_context().isis.passive_interfaces %}
+
+  {%- if isis_instance.mpls_traffic_eng %}
+ mpls traffic-eng {{ isis_instance.mpls_traffic_eng }}
+  {%- endif %}  
+  {%- if isis_instance.passive_interfaces %}
+  {%- for interface in isis_instance.passive_interfaces %}
  passive-interface {{ interface }}
   {%- endfor %}
   {%- endif %} 
-  {%- if device.get_config_context().isis.mpls_traffic_eng %}
- mpls traffic-eng {{ device.get_config_context().isis.mpls_traffic_eng }}
-  {%- endif %}  
-  {%- if device.get_config_context().isis.sr_block %}
- isis segment-routing global block {{ device.get_config_context().isis.sr_block }}
+  {%- if isis_instance.sr_block %}
+ isis segment-routing global block {{ isis_instance.sr_block }}
  segment-routing mpls
   {%- endif %}
-{%- endif %}
 exit
 
 {%- set bgp = device.get_config_context().get("bgp", {}) %}
