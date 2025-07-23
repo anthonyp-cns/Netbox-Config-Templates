@@ -4,6 +4,8 @@ feature netconf-ssh vrf management
 feature netconf-tls vrf management
 no feature netconf-ssh
 no feature netconf-tls
+logging level all 5  
+logging logfile syslog 5
 cml bulk-config limit cpu enable
 no service password-encryption
 snmp-server enable traps link linkDown

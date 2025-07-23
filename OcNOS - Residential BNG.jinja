@@ -7,8 +7,8 @@ no feature netconf-tls
 cml bulk-config limit cpu enable
 no service password-encryption
 bgp extended-asn-cap
-logging logfile ocnoslog 7 size 419430400
-debug logfile ocnosdebug size 4194304
+logging level all 5  
+logging logfile syslog 5debug logfile ocnosdebug size 4194304
 snmp-server enable traps link linkDown
 snmp-server enable traps link linkUp
 
