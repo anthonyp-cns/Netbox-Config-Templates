@@ -377,7 +377,7 @@ line vty 1 871
  exec-timeout 35791
 
 
-{% if bgp_sessions %}
+{% if device.bgp_sessions.all() %}
 BGP Sesssion 
 {% endif %}
 
