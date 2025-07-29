@@ -378,4 +378,25 @@ line vty 1 871
 
 
 
-{{ device | tojson(indent=2) }}
+{% macro recursive_dump(obj, indent=0) %}
+  {% if obj is mapping %}
+    {% for key, value in obj.items() %}
+{{ '  ' * indent }}- {{ key }}:
+{{ recursive_dump(value, indent + 1) }}
+    {% endfor %}
+  {% elif obj is iterable and not obj is string %}
+    {% for item in obj %}
+{{ '  ' * indent }}- 
+{{ recursive_dump(item, indent + 1) }}
+    {% endfor %}
+  {% else %}
+{{ '  ' * indent }}{{ obj }}
+  {% endif %}
+{% endmacro %}
+
+Context Variables Dump:
+{% for key, value in vars().items() %}
+=== {{ key }} ===
+{{ recursive_dump(value, 1) }}
+
+{% endfor %}
