@@ -382,7 +382,7 @@ line vty 1 871
 
 Context Variables Dump:
 
-{% for key, value in vars().items() %}
-{{ key }}: {{ value }}
-{% endfor %}
 
+{% for attr in device | dictsort %}
+{{ attr[0] }}: {{ attr[1] }}
+{% endfor %}
