@@ -151,79 +151,131 @@ router isis
   {%- endif %}
 {%- endif %}
 exit
-
 {%- set bgp = device.get_config_context().get("bgp", {}) %}
 {%- for asn, asn_data in bgp.get("asn", {}).items() %}
 router bgp {{ asn }}
   {%- if asn_data.get("router_id") %}
- bgp router-id {{ asn_data.router_id }}
+  bgp router-id {{ asn_data.router_id }}
   {%- endif %}
 
+  {# --- Peer-groups --- #}
   {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
- neighbor {{ pg_name }} peer-group
- neighbor {{ pg_name }} remote-as {{ pg_data.remote_as }}
- neighbor {{ pg_name }} update-source {{ pg_data.update_source }}
- neighbor {{ pg_name }} timers {{ pg_data.timers }}
+  neighbor {{ pg_name }} peer-group
+  neighbor {{ pg_name }} remote-as {{ pg_data.remote_as }}
+  neighbor {{ pg_name }} update-source {{ pg_data.update_source }}
+  neighbor {{ pg_name }} timers {{ pg_data.timers }}
   {%- endfor %}
 
+  {# --- Peer-group Neighbors --- #}
   {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
     {%- for neighbor_ip in pg_data.get("neighbors", {}) %}
- neighbor {{ neighbor_ip }} peer-group {{ pg_name }}
+  neighbor {{ neighbor_ip }} peer-group {{ pg_name }}
     {%- endfor %}
   {%- endfor %}
- !
- address-family ipv4 unicast
+
+  {# --- Direct Neighbors --- #}
+  {%- for neighbor_ip, neighbor_data in asn_data.get("neighbors", {}).items() %}
+  neighbor {{ neighbor_ip }} remote-as {{ neighbor_data.remote_as }}
+    {%- if neighbor_data.update_source %}
+  neighbor {{ neighbor_ip }} update-source {{ neighbor_data.update_source }}
+    {%- endif %}
+    {%- if neighbor_data.timers %}
+  neighbor {{ neighbor_ip }} timers {{ neighbor_data.timers }}
+    {%- endif %}
+  {%- endfor %}
+
+  !
+  address-family ipv4 unicast
   {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
     {%- if pg_data.get("address_family", {}).get("ipv4", {}).get("unicast") %}
- neighbor {{ pg_name }} activate
-      {%- set redist = pg_data.address_family.ipv4.unicast.get("redistribute", {}) %}
-      {%- for proto, options in redist.items() %}
- redistribute {{ proto }}{% if options.route_map %} route-map {{ options.route_map }}{% endif %}
+  neighbor {{ pg_name }} activate
+      {%- for proto, options in pg_data.address_family.ipv4.unicast.get("redistribute", {}).items() %}
+  redistribute {{ proto }}{% if options.route_map %} route-map {{ options.route_map }}{% endif %}
       {%- endfor %}
     {%- endif %}
   {%- endfor %}
- exit-address-family
- !
- address-family vpnv4 unicast
-  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
-    {%- if pg_data.get("address_family", {}).get("vpnv4", {}).get("unicast") is not none %}
- neighbor {{ pg_name }} activate
+  {%- for neighbor_ip, neighbor_data in asn_data.get("neighbors", {}).items() %}
+    {%- if neighbor_data.get("address_family", {}).get("ipv4", {}).get("unicast") %}
+  neighbor {{ neighbor_ip }} activate
+      {%- set af = neighbor_data.address_family.ipv4.unicast %}
+      {%- if af.import_route_map %}
+  neighbor {{ neighbor_ip }} route-map {{ af.import_route_map }} in
+      {%- endif %}
+      {%- if af.export_route_map %}
+  neighbor {{ neighbor_ip }} route-map {{ af.export_route_map }} out
+      {%- endif %}
     {%- endif %}
   {%- endfor %}
- exit-address-family
- !
- address-family l2vpn evpn
-  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
-    {%- if pg_data.get("address_family", {}).get("l2vpn", {}).get("evpn") is not none %}
- neighbor {{ pg_name }} activate
-    {%- endif %}
-  {%- endfor %}
- exit-address-family
- !
- address-family ipv6 unicast
+  exit-address-family
+
+  !
+  address-family ipv6 unicast
   {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
     {%- if pg_data.get("address_family", {}).get("ipv6", {}).get("unicast") %}
- neighbor {{ pg_name }} activate
-      {%- set redist = pg_data.address_family.ipv6.unicast.get("redistribute", {}) %}
-      {%- for proto, options in redist.items() %}
- redistribute {{ proto }}{% if options.route_map %} route-map {{ options.route_map }}{% endif %}
+  neighbor {{ pg_name }} activate
+      {%- for proto, options in pg_data.address_family.ipv6.unicast.get("redistribute", {}).items() %}
+  redistribute {{ proto }}{% if options.route_map %} route-map {{ options.route_map }}{% endif %}
       {%- endfor %}
     {%- endif %}
   {%- endfor %}
- exit-address-family
+  {%- for neighbor_ip, neighbor_data in asn_data.get("neighbors", {}).items() %}
+    {%- if neighbor_data.get("address_family", {}).get("ipv6", {}).get("unicast") %}
+  neighbor {{ neighbor_ip }} activate
+      {%- set af = neighbor_data.address_family.ipv6.unicast %}
+      {%- if af.import_route_map %}
+  neighbor {{ neighbor_ip }} route-map {{ af.import_route_map }} in
+      {%- endif %}
+      {%- if af.export_route_map %}
+  neighbor {{ neighbor_ip }} route-map {{ af.export_route_map }} out
+      {%- endif %}
+    {%- endif %}
+  {%- endfor %}
+  exit-address-family
+
+  !
+  address-family vpnv4 unicast
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- if pg_data.get("address_family", {}).get("vpnv4", {}).get("unicast") is not none %}
+  neighbor {{ pg_name }} activate
+    {%- endif %}
+  {%- endfor %}
+  exit-address-family
+
+  !
+  address-family l2vpn evpn
+  {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+    {%- if pg_data.get("address_family", {}).get("l2vpn", {}).get("evpn") is not none %}
+  neighbor {{ pg_name }} activate
+    {%- endif %}
+  {%- endfor %}
+  exit-address-family
+
+  {# --- VRF Redistribution --- #}
   {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
     {%- for vrf_name, vrf_data in pg_data.get("address_family", {}).get("ipv4", {}).get("vrf", {}).items() %}
- !
- address-family ipv4 vrf {{ vrf_name }}
+  !
+  address-family ipv4 vrf {{ vrf_name }}
       {%- for proto, options in vrf_data.get("redistribute", {}).items() %}
- redistribute {{ proto }}
+  redistribute {{ proto }}
       {%- endfor %}
- exit-address-family
+  exit-address-family
     {%- endfor %}
   {%- endfor %}
+  {%- for neighbor_ip, neighbor_data in asn_data.get("neighbors", {}).items() %}
+    {%- for vrf_name, vrf_data in neighbor_data.get("address_family", {}).get("ipv4", {}).get("vrf", {}).items() %}
+  !
+  address-family ipv4 vrf {{ vrf_name }}
+      {%- for proto, options in vrf_data.get("redistribute", {}).items() %}
+  redistribute {{ proto }}
+      {%- endfor %}
+  exit-address-family
+    {%- endfor %}
+  {%- endfor %}
+
 !
 exit
 {%- endfor %}
+
 !
 interface lo
  ip address 127.0.0.1/8
