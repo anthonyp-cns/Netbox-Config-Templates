@@ -122,6 +122,65 @@ ip name-server {{ server }}
   {%- endfor %}
 {%- endif %}
 
+{# ---------- PREFIX LISTS ---------- #}
+{% if prefix_lists %}
+! PREFIX LISTS
+{% for pl in prefix_lists %}
+ip prefix-list {{ pl.name }}
+  {% for entry in pl.entries.all %}
+  {% if entry.ge and entry.le %}
+    seq {{ loop.index }} permit {{ entry.prefix }} ge {{ entry.ge }} le {{ entry.le }}
+  {% elif entry.ge %}
+    seq {{ loop.index }} permit {{ entry.prefix }} ge {{ entry.ge }}
+  {% elif entry.le %}
+    seq {{ loop.index }} permit {{ entry.prefix }} le {{ entry.le }}
+  {% else %}
+    seq {{ loop.index }} permit {{ entry.prefix }}
+  {% endif %}
+  {% endfor %}
+exit
+{% endfor %}
+{% endif %}
+{# ---------- ROUTE POLICIES ---------- #}
+{% if routing_policies %}
+! ROUTE POLICIES
+{% for policy in routing_policies %}
+route-policy {{ policy.name }}
+  {% for term in policy.terms.all %}
+  if
+    {% if term.match_prefix_list %}
+    match ip address prefix-list {{ term.match_prefix_list.name }}
+    {% endif %}
+    {% if term.match_community_list %}
+    match community {{ term.match_community_list.name }}
+    {% endif %}
+    {% if term.match_as_path %}
+    match as-path {{ term.match_as_path }}
+    {% endif %}
+    {% if term.match_med %}
+    match metric {{ term.match_med }}
+    {% endif %}
+    {% if term.match_local_pref %}
+    match local-preference {{ term.match_local_pref }}
+    {% endif %}
+  then
+    {% if term.set_local_pref %}
+    set local-preference {{ term.set_local_pref }}
+    {% endif %}
+    {% if term.set_med %}
+    set metric {{ term.set_med }}
+    {% endif %}
+    {% if term.set_community %}
+    set community {{ term.set_community }}
+    {% endif %}
+    {% if term.action %}
+    {{ term.action }}
+    {% endif %}
+  endif
+  {% endfor %}
+end-policy
+{% endfor %}
+{% endif %}
 
 {#- IS-IS config #}
 {%- if device.get_config_context().isis %}
