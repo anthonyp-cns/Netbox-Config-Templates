@@ -140,7 +140,7 @@ exit
     {%- if term.match_prefix_list %}
     match ip address prefix-list {{ term.match_prefix_list.name }}
     {%- endif %}
-        {%- if term.match_prefix_list6 %}
+    {%- if term.match_prefix_list6 %}
     match ipv6 address prefix-list {{ term.match_prefix_list6.name }}
     {%- endif %}
     {%- if term.match_community_list %}
