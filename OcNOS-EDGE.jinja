@@ -223,7 +223,7 @@ router bgp {{ asn }}
   address-family {{ family_name }}
         {%- if family_data.get("networks") %}
           {%- for network in family_data.get("networks")%}
-  network {{ network }}
+    network {{ network }}
           {%- endfor %}
         {%- endif %}
     {%- endfor %}
