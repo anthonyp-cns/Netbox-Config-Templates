@@ -220,6 +220,9 @@ router bgp {{ asn }}
   {%- endif %}
   {# --- Peer-groups --- #}
   {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
+  {%- if pg_data.description %}
+  neighbor {{ pg_name }} description "{{ pg_data.description }}"
+  {%- endif %}
   neighbor {{ pg_name }} peer-group
   neighbor {{ pg_name }} remote-as {{ pg_data.remote_as }}
   neighbor {{ pg_name }} update-source {{ pg_data.update_source }}
@@ -239,6 +242,9 @@ router bgp {{ asn }}
     {%- endif %}
     {%- if neighbor_data.timers %}
   neighbor {{ neighbor_ip }} timers {{ neighbor_data.timers }}
+    {%- endif %}
+    {%- if neighbor_data.description %}
+  neighbor {{ neighbor_ip }} description "{{ neighbor_data.description }}"
     {%- endif %}
   {%- endfor %}
   !
