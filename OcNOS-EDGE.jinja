@@ -227,6 +227,7 @@ router bgp {{ asn }}
           {%- endfor %}
         {%- endif %}
     {%- endfor %}
+    exit-address-family
   {%- endif %}
   {# --- Peer-groups --- #}
   {%- for pg_name, pg_data in asn_data.get("peer_group", {}).items() %}
