@@ -115,16 +115,18 @@ ip name-server {{ server }}
 ! PREFIX LISTS
 {% for pl in prefix_lists %}
 ip prefix-list {{ pl.name }}
-  {% for entry in pl.entries.all %}
-  {% if entry.ge and entry.le %}
-    seq {{ loop.index }} permit {{ entry.prefix }} ge {{ entry.ge }} le {{ entry.le }}
-  {% elif entry.ge %}
-    seq {{ loop.index }} permit {{ entry.prefix }} ge {{ entry.ge }}
-  {% elif entry.le %}
-    seq {{ loop.index }} permit {{ entry.prefix }} le {{ entry.le }}
-  {% else %}
-    seq {{ loop.index }} permit {{ entry.prefix }}
-  {% endif %}
+  {% for entry in pl.entries %}
+    {% set seq = loop.index %}
+    {% set action = entry.get('action', 'permit') %}
+    {% if entry.ge and entry.le %}
+  seq {{ seq }} {{ action }} {{ entry.prefix }} ge {{ entry.ge }} le {{ entry.le }}
+    {% elif entry.ge %}
+  seq {{ seq }} {{ action }} {{ entry.prefix }} ge {{ entry.ge }}
+    {% elif entry.le %}
+  seq {{ seq }} {{ action }} {{ entry.prefix }} le {{ entry.le }}
+    {% else %}
+  seq {{ seq }} {{ action }} {{ entry.prefix }}
+    {% endif %}
   {% endfor %}
 exit
 {% endfor %}
@@ -134,7 +136,7 @@ exit
 ! ROUTE POLICIES
 {% for policy in routing_policies %}
 route-policy {{ policy.name }}
-  {% for term in policy.terms.all %}
+  {% for term in policy.terms %}
   if
     {% if term.match_prefix_list %}
     match ip address prefix-list {{ term.match_prefix_list.name }}
@@ -169,6 +171,7 @@ route-policy {{ policy.name }}
 end-policy
 {% endfor %}
 {% endif %}
+
 {#- IS-IS config #}
 {%- if device.get_config_context().isis %}
   {%- if device.get_config_context().isis.proccess_tag %}
