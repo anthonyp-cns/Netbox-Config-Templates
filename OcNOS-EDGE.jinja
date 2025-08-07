@@ -221,12 +221,11 @@ router bgp {{ asn }}
     {%- if asn_data.get("address_family") %}
       {%- for family_name, family_data in asn_data.get("address_family",{}).items() %}
   address-family {{ family_name }}
-        {%- if family_data.get("network") %}
-          {%- for network in family_data.get("network")%}
+        {%- if family_data.get("networks") %}
+          {%- for network in family_data.get("networks")%}
   network {{ network }}
           {%- endfor %}
         {%- endif %}
-    
     {%- endfor %}
   {%- endif %}
   {# --- Peer-groups --- #}
