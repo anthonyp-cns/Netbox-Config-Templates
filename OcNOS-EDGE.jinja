@@ -136,38 +136,38 @@ exit
 {%- if routing_policies %}
 {%- for policy in routing_policies %}
   {%- for term in policy.terms %}
-  route-map {{ policy.name }} {{ term.action }} {{ term.sequence }}
+route-map {{ policy.name }} {{ term.action }} {{ term.sequence }}
     {%- if term.match_prefix_list %}
-    match ip address prefix-list {{ term.match_prefix_list.name }}
+  match ip address prefix-list {{ term.match_prefix_list.name }}
     {%- endif %}
     {%- if term.match_prefix_list6 %}
-    match ipv6 address prefix-list {{ term.match_prefix_list6.name }}
+  match ipv6 address prefix-list {{ term.match_prefix_list6.name }}
     {%- endif %}
     {%- if term.match_community_list %}
-    match community {{ term.match_community_list.name }}
+  match community {{ term.match_community_list.name }}
     {%- endif %}
     {%- if term.match_as_path %}
-    match as-path {{ term.match_as_path }}
+  match as-path {{ term.match_as_path }}
     {%- endif %}
     {%- if term.match_med %}
-    match metric {{ term.match_med }}
+  match metric {{ term.match_med }}
     {%- endif %}
     {%- if term.match_local_pref %}
-    match local-preference {{ term.match_local_pref }}
+  match local-preference {{ term.match_local_pref }}
     {%- endif %}
     {%- if term.set_local_pref %}
-    set local-preference {{ term.set_local_pref }}
+  set local-preference {{ term.set_local_pref }}
     {%- endif %}
     {%- if term.set_med %}
-    set metric {{ term.set_med }}
+  set metric {{ term.set_med }}
     {%- endif %}
     {%- if term.set_community %}
-    set community {{ term.set_community }}
+  set community {{ term.set_community }}
     {%- endif %}
     {%- if term.action %}
     {{ term.action }}
     {%- endif %}
-    exit
+  exit
   {%- endfor %}
 {%- endfor %}
 {%- endif %}
